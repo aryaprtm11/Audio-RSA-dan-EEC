@@ -5,10 +5,10 @@ Tanpa ketergantungan pada DiffieHellman
 import os
 import hashlib
 import base64
-from Crypto.PublicKey import ECC
-from Crypto.Random import get_random_bytes
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from Cryptodome.PublicKey import ECC
+from Cryptodome.Random import get_random_bytes
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 
 class SimplifiedECCCrypto:
     def __init__(self):

@@ -4,11 +4,11 @@ Implementasi RSA sederhana untuk enkripsi dan dekripsi pesan
 import os
 import base64
 import hashlib
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import PKCS1_OAEP
-from Crypto.Random import get_random_bytes
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from Cryptodome.PublicKey import RSA
+from Cryptodome.Cipher import PKCS1_OAEP
+from Cryptodome.Random import get_random_bytes
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 
 class SimpleRSACrypto:
     def __init__(self, key_size=2048):
