@@ -74,14 +74,14 @@ class AudioDWT:
         reconstructed_data = pywt.waverec(coeffs, self.wavelet)
         return reconstructed_data
     
-    def embed_bits_in_coefficients(self, coeffs, bits, alpha=0.1):
+    def embed_bits_in_coefficients(self, coeffs, bits, alpha=0.001):
         """
         Menyisipkan bit dalam koefisien detail DWT.
         
         Args:
             coeffs (list): Koefisien wavelet
             bits (str): String bit yang akan disisipkan
-            alpha (float): Faktor skala untuk penyisipan (default: 0.1)
+            alpha (float): Faktor skala untuk penyisipan (default: 0.001)
             
         Returns:
             list: Koefisien wavelet yang telah dimodifikasi
@@ -123,17 +123,9 @@ class AudioDWT:
         
         return modified_coeffs
     
-    def extract_bits_from_coefficients(self, coeffs, num_bits, alpha=0.1):
+    def extract_bits_from_coefficients(self, coeffs, num_bits, alpha=0.001):
         """
-        Ekstrak bit dari koefisien detail DWT.
-        
-        Args:
-            coeffs (list): Koefisien wavelet
-            num_bits (int): Jumlah bit yang akan diekstrak
-            alpha (float): Faktor skala yang digunakan saat penyisipan (default: 0.1)
-            
-        Returns:
-            str: String bit yang diekstrak
+        Ekstrak bit dari koefisien detail DWT dengan sensitivitas adaptif.
         """
         # Koefisien detail (level 1)
         detail_coeffs = coeffs[1]
@@ -142,17 +134,17 @@ class AudioDWT:
         # Pastikan kita tidak mencoba mengekstrak lebih banyak bit daripada yang tersedia
         max_bits = min(num_bits, len(detail_coeffs))
         
+        # Parameter sensitivitas yang adaptif berdasarkan alpha
+        threshold_low = 0.4 * alpha
+        threshold_high = 1.6 * alpha
+        
         # Ekstrak bit dari koefisien detail
         for i in range(max_bits):
-            # Metode yang lebih robust untuk menentukan bit
-            # Jika nilai koefisien lebih besar dari threshold, maka bit adalah 1
-            # Jika nilai koefisien lebih kecil dari threshold, maka bit adalah 0
             coeff_value = abs(detail_coeffs[i])
             remainder = coeff_value % (2 * alpha)
             
-            # Gunakan range yang lebih lebar untuk menentukan bit 1
-            # Ini membantu mengatasi noise dan distorsi yang mungkin terjadi
-            if remainder >= 0.8 * alpha and remainder <= 1.2 * alpha:
+            # Range yang lebih lebar untuk mendeteksi bit 1
+            if remainder >= threshold_low and remainder <= threshold_high:
                 extracted_bits += "1"
             else:
                 extracted_bits += "0"

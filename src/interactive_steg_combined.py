@@ -239,7 +239,7 @@ def extract_message():
     
     if not stego_file or not os.path.exists(stego_file):
         print("File tidak ditemukan")
-        return
+        return None
     
     # Cek apakah ada file info
     info_file = stego_file + ".info"
@@ -310,7 +310,7 @@ def extract_message():
         
         if len(all_extracted_bits) < 32:
             print("Data yang diekstrak terlalu pendek! Tidak bisa membaca header.")
-            return
+            return None
         
         # Baca panjang header (32 bit pertama)
         header_length_bits = all_extracted_bits[:32]
@@ -318,12 +318,12 @@ def extract_message():
             header_length = int(header_length_bits, 2)
         except ValueError:
             print(f"Error: Bit header panjang tidak valid: {header_length_bits}")
-            return
+            return None
         
         # Pastikan data cukup panjang
         if len(all_extracted_bits) < 32 + header_length:
             print("Data yang diekstrak tidak lengkap! Header tidak lengkap.")
-            return
+            return None
         
         # Ekstrak header
         header_bits = all_extracted_bits[32:32+header_length]
@@ -339,12 +339,12 @@ def extract_message():
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error saat parsing header: {str(e)}")
             print(f"Header JSON: {header_json[:100]}...")  # Hanya tampilkan sebagian
-            return
+            return None
         
         # Pastikan data cukup panjang untuk pesan
         if len(all_extracted_bits) < 32 + header_length + 8:  # minimal 1 byte pesan
             print("Data yang diekstrak tidak lengkap! Pesan tidak ditemukan.")
-            return
+            return None
         
         # Ekstrak data terenkripsi
         message_bits = all_extracted_bits[32+header_length:]
@@ -355,7 +355,7 @@ def extract_message():
         except json.JSONDecodeError:
             print(f"Error saat parsing pesan terenkripsi. Data mungkin rusak.")
             print(f"Data terenkripsi: {message_json[:100]}...")  # Hanya tampilkan sebagian
-            return
+            return None
         
         # Dekripsi dengan RSA terlebih dahulu
         rsa_crypto = SimpleRSACrypto()
@@ -390,20 +390,27 @@ def extract_message():
                 print("Mencoba mendekripsi dengan ECC...")
                 decrypted_message = ecc_crypto.decrypt_text(ecc_encrypted_data_base64, ecc_key_base64)
                 print(f"\nPesan yang diekstrak: {decrypted_message}")
+                
+                return decrypted_message
+                
             except json.JSONDecodeError:
                 print(f"Error saat parsing data ECC. Data RSA terdekripsi tetapi format tidak valid.")
                 print(f"Data hasil dekripsi RSA: {combined_message[:100]}...")
+                return None
             except KeyError as e:
                 print(f"Kunci tidak ditemukan dalam data ECC: {str(e)}")
+                return None
             
         except Exception as e:
             print(f"Gagal mendekripsi pesan pada layer RSA: {str(e)}")
             print("Kemungkinan alasannya: kunci privat RSA tidak cocok atau data rusak")
+            return None
         
     except Exception as e:
         print(f"Terjadi kesalahan saat mengekstrak pesan: {str(e)}")
         import traceback
         traceback.print_exc()
+        return None
 
 def debug_extract():
     """Fungsi debug untuk mengekstrak dan menampilkan data mentah."""

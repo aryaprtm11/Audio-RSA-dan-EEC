@@ -1,15 +1,15 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import threading
-from interactive_steg_ecc_fixed import embed_message, extract_message
+from interactive_steg_combined import embed_message, extract_message
 
 class StegoApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Audio Steganografi - ECC + DWT")
+        self.title("Enkripsi Teks ECC + RSA & File DWT")
         self.geometry("400x300")
 
-        tk.Label(self, text="Audio Steganografi dengan ECC + DWT", font=("Helvetica", 14)).pack(pady=20)
+        tk.Label(self, text="Enkripsi Teks ECC + RSA & File DWT", font=("Helvetica", 14)).pack(pady=20)
 
         tk.Button(self, text="🔐 Sisipkan Pesan", command=self.open_embed_window, width=30).pack(pady=10)
         tk.Button(self, text="🔓 Ekstrak Pesan", command=self.open_extract_window, width=30).pack(pady=10)
