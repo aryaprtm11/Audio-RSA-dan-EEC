@@ -218,6 +218,7 @@ def extract_message():
         try:
             decrypted_message = ecc.decrypt_text(encrypted_data_base64, session_key_base64)
             print(f"\nPesan yang diekstrak: {decrypted_message}")
+            return decrypted_message
         except Exception as e:
             print(f"Gagal mendekripsi pesan: {str(e)}")
         
