@@ -1,15 +1,17 @@
 """
-Steganografi audio interaktif dengan kombinasi ECC dan RSA secara bersamaan
-Menggunakan teknik DWT untuk menyembunyikan pesan yang telah dienkripsi dengan kedua algoritma
+Modul inti untuk steganografi audio dengan ECC dan RSA (tanpa AES).
 """
+
 import os
 import json
 import base64
 import numpy as np
 import soundfile as sf
-from dwt import AudioDWT
-from ecc_simple import SimplifiedECCCrypto
-from rsa_simple import SimpleRSACrypto
+import traceback
+
+from steg import AudioDWT
+from crypto import SimplifiedECCCrypto, SimpleRSACrypto
+from utils import text_to_bits, bits_to_text, bytes_to_bits, bits_to_bytes
 
 def generate_audio(output_file, duration=10, sample_rate=44100):
     """Membuat file audio sampel dengan gelombang sinus sederhana."""
@@ -19,38 +21,6 @@ def generate_audio(output_file, duration=10, sample_rate=44100):
     print(f"File audio sampel dibuat: {output_file}")
     return output_file
 
-def text_to_bits(text):
-    """Konversi teks ke string bit."""
-    bits = ""
-    for char in text:
-        bits += format(ord(char), '08b')  # Konversi karakter ke 8 bit
-    return bits
-
-def bits_to_text(bits):
-    """Konversi string bit kembali ke teks."""
-    text = ""
-    for i in range(0, len(bits), 8):
-        if i + 8 <= len(bits):
-            byte = bits[i:i+8]
-            text += chr(int(byte, 2))
-    return text
-
-def bytes_to_bits(data):
-    """Konversi bytes ke string bit."""
-    bits = ""
-    for byte in data:
-        bits += format(byte, '08b')
-    return bits
-
-def bits_to_bytes(bits):
-    """Konversi string bit ke bytes."""
-    bytes_data = bytearray()
-    for i in range(0, len(bits), 8):
-        if i + 8 <= len(bits):
-            byte = bits[i:i+8]
-            bytes_data.append(int(byte, 2))
-    return bytes(bytes_data)
-
 def prepare_message(message):
     """
     Menyiapkan pesan dengan enkripsi ganda ECC kemudian RSA
@@ -59,7 +29,7 @@ def prepare_message(message):
         message (str): Pesan yang akan dienkripsi
         
     Returns:
-        tuple: (all_bits, ecc_crypto, rsa_crypto)
+        tuple: (all_bits, ecc_crypto, rsa_crypto) - bit pesan dan instance crypto
     """
     # Buat instance ECC
     print("Membuat kunci ECC...")
@@ -107,13 +77,25 @@ def prepare_message(message):
     
     return all_bits, ecc_crypto, rsa_crypto
 
-def embed_message():
-    """Menyisipkan pesan ke dalam file audio."""
+def embed_message(input_file=None, output_file=None, message=None, alpha=0.001):
+    """
+    Menyisipkan pesan ke dalam file audio.
+    
+    Args:
+        input_file (str, optional): Path ke file audio input
+        output_file (str, optional): Path ke file audio output
+        message (str, optional): Pesan yang akan disembunyikan
+        alpha (float, optional): Parameter DWT, default 0.001
+        
+    Returns:
+        str: Path ke file output, atau None jika gagal
+    """
     # Buat direktori output jika belum ada
     os.makedirs('output', exist_ok=True)
     
-    # Tanya nama file audio atau gunakan default
-    input_file = input("Masukkan path file audio asli (atau biarkan kosong untuk membuat file audio sampel): ").strip()
+    # Tanya nama file audio atau gunakan default jika tidak diberikan
+    if input_file is None:
+        input_file = input("Masukkan path file audio asli (atau biarkan kosong untuk membuat file audio sampel): ").strip()
     
     if not input_file:
         input_file = 'output/combined_sample.wav'
@@ -123,27 +105,33 @@ def embed_message():
         input_file = 'output/combined_sample.wav'
         generate_audio(input_file)
     
-    # Tanya nama file output
-    output_file = input("Masukkan path file audio output (atau biarkan kosong untuk default): ").strip()
+    # Tanya nama file output jika tidak diberikan
+    if output_file is None:
+        output_file = input("Masukkan path file audio output (atau biarkan kosong untuk default): ").strip()
+    
     if not output_file:
         output_file = 'output/stego_combined.wav'
     
-    # Tanya pesan yang akan disembunyikan
-    message = input("Masukkan pesan yang akan disembunyikan: ")
+    # Tanya pesan yang akan disembunyikan jika tidak diberikan
+    if message is None:
+        message = input("Masukkan pesan yang akan disembunyikan: ")
     
     if not message:
         print("Pesan tidak boleh kosong")
-        return
+        return None
     
-    # Tanya nilai alpha untuk DWT
-    alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.001): ").strip()
-    alpha = 0.001  # nilai default
-    if alpha_str:
-        try:
-            alpha = float(alpha_str)
-            print(f"Menggunakan alpha = {alpha}")
-        except ValueError:
-            print(f"Nilai alpha tidak valid, menggunakan default 0.001")
+    # Gunakan alpha yang diberikan atau tanya jika tidak ada
+    if alpha is None:
+        alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.001): ").strip()
+        alpha = 0.001  # nilai default
+        if alpha_str:
+            try:
+                alpha = float(alpha_str)
+                print(f"Menggunakan alpha = {alpha}")
+            except ValueError:
+                print(f"Nilai alpha tidak valid, menggunakan default 0.001")
+    else:
+        print(f"Menggunakan alpha = {alpha}")
     
     try:
         # Siapkan pesan dengan enkripsi ganda (ECC kemudian RSA)
@@ -156,17 +144,16 @@ def embed_message():
         
         # Cek kapasitas file audio
         try:
-            audio_data, _ = dwt.read_audio(input_file)
+            audio_data, sample_rate = dwt.read_audio(input_file)
             coeffs = dwt.apply_dwt(audio_data)
             capacity = len(coeffs[1])
             
             if len(all_bits) > capacity:
                 print(f"Pesan terlalu panjang! Kapasitas maksimal: {capacity} bit, Pesan terenkripsi: {len(all_bits)} bit")
-                return
+                return None
             
             # Sembunyikan pesan dalam file audio dengan nilai alpha yang ditentukan
             print(f"\nMenyisipkan pesan ke dalam {output_file}...")
-            success = True
             
             # Terapkan DWT
             coeffs = dwt.apply_dwt(audio_data)
@@ -189,53 +176,66 @@ def embed_message():
                 reconstructed_data = reconstructed_stereo
             
             # Simpan audio hasil
-            dwt.save_audio(output_file, reconstructed_data, _)
+            dwt.save_audio(output_file, reconstructed_data, sample_rate)
             
-            if success:
-                print(f"Pesan berhasil disembunyikan dalam file: {output_file}")
+            print(f"Pesan berhasil disembunyikan dalam file: {output_file}")
+            
+            try:
+                # Buat file untuk menyimpan kunci
+                key_file = output_file + ".key"
+                with open(key_file, 'w') as f:
+                    f.write("===== KUNCI ECC =====\n\n")
+                    f.write(f"PUBLIC KEY ECC:\n{ecc_crypto.get_public_key()}\n\n")
+                    f.write(f"PRIVATE KEY ECC:\n{ecc_crypto.get_private_key()}\n\n")
+                    f.write("===== KUNCI RSA =====\n\n")
+                    f.write(f"PUBLIC KEY RSA:\n{rsa_crypto.get_public_key()}\n\n")
+                    f.write(f"PRIVATE KEY RSA:\n{rsa_crypto.get_private_key()}\n")
+                print(f"Kunci ECC dan RSA disimpan dalam {key_file}")
                 
-                try:
-                    # Buat file untuk menyimpan kunci
-                    key_file = output_file + ".key"
-                    with open(key_file, 'w') as f:
-                        f.write("===== KUNCI ECC =====\n\n")
-                        f.write(f"PUBLIC KEY ECC:\n{ecc_crypto.get_public_key()}\n\n")
-                        f.write(f"PRIVATE KEY ECC:\n{ecc_crypto.get_private_key()}\n\n")
-                        f.write("===== KUNCI RSA =====\n\n")
-                        f.write(f"PUBLIC KEY RSA:\n{rsa_crypto.get_public_key()}\n\n")
-                        f.write(f"PRIVATE KEY RSA:\n{rsa_crypto.get_private_key()}\n")
-                    print(f"Kunci ECC dan RSA disimpan dalam {key_file}")
-                    
-                    # Tambahkan informasi panjang pesan dan kunci ke file info
-                    info_file = output_file + ".info"
-                    info = {
-                        "bits_length": len(all_bits),
-                        "ecc_public_key": ecc_crypto.get_public_key(),
-                        "ecc_private_key": ecc_crypto.get_private_key(),
-                        "rsa_public_key": rsa_crypto.get_public_key(),
-                        "rsa_private_key": rsa_crypto.get_private_key(),
-                        "message_length": len(message),
-                        "alpha": alpha  # Simpan nilai alpha yang digunakan
-                    }
-                    
-                    with open(info_file, 'w') as f:
-                        json.dump(info, f)
-                    print(f"Informasi panjang pesan dan kunci disimpan dalam {info_file}")
-                    print("PENTING: Dalam aplikasi nyata, kunci privat harus disimpan dengan aman!")
-                except Exception as e:
-                    print(f"Peringatan: Terjadi masalah saat menyimpan file kunci: {str(e)}")
-                    print("Pesan tetap tersimpan dalam file audio, tetapi kunci mungkin tidak tersimpan dengan benar.")
+                # Tambahkan informasi panjang pesan dan kunci ke file info
+                info_file = output_file + ".info"
+                info = {
+                    "bits_length": len(all_bits),
+                    "ecc_public_key": ecc_crypto.get_public_key(),
+                    "ecc_private_key": ecc_crypto.get_private_key(),
+                    "rsa_public_key": rsa_crypto.get_public_key(),
+                    "rsa_private_key": rsa_crypto.get_private_key(),
+                    "message_length": len(message),
+                    "alpha": alpha  # Simpan nilai alpha yang digunakan
+                }
+                
+                with open(info_file, 'w') as f:
+                    json.dump(info, f)
+                print(f"Informasi panjang pesan dan kunci disimpan dalam {info_file}")
+                print("PENTING: Dalam aplikasi nyata, kunci privat harus disimpan dengan aman!")
+            except Exception as e:
+                print(f"Peringatan: Terjadi masalah saat menyimpan file kunci: {str(e)}")
+                print("Pesan tetap tersimpan dalam file audio, tetapi kunci mungkin tidak tersimpan dengan benar.")
+            
+            return output_file
+            
         except Exception as e:
             print(f"Error saat mengakses atau memproses file audio: {str(e)}")
+            return None
+            
     except Exception as e:
         print(f"Terjadi kesalahan saat menyiapkan pesan: {str(e)}")
-        import traceback
         traceback.print_exc()
+        return None
 
-def extract_message():
-    """Mengekstrak pesan dari file audio."""
-    # Tanya nama file audio stego
-    stego_file = input("Masukkan path file audio yang berisi pesan tersembunyi: ").strip()
+def extract_message(stego_file=None):
+    """
+    Mengekstrak pesan dari file audio.
+    
+    Args:
+        stego_file (str, optional): Path ke file audio stego
+        
+    Returns:
+        str: Pesan yang diekstrak, atau None jika gagal
+    """
+    # Tanya nama file audio stego jika tidak diberikan
+    if stego_file is None:
+        stego_file = input("Masukkan path file audio yang berisi pesan tersembunyi: ").strip()
     
     if not stego_file or not os.path.exists(stego_file):
         print("File tidak ditemukan")
@@ -389,6 +389,7 @@ def extract_message():
                 # Dekripsi layer kedua (ECC)
                 print("Mencoba mendekripsi dengan ECC...")
                 decrypted_message = ecc_crypto.decrypt_text(ecc_encrypted_data_base64, ecc_key_base64)
+                
                 print(f"\nPesan yang diekstrak: {decrypted_message}")
                 
                 return decrypted_message
@@ -408,32 +409,39 @@ def extract_message():
         
     except Exception as e:
         print(f"Terjadi kesalahan saat mengekstrak pesan: {str(e)}")
-        import traceback
         traceback.print_exc()
         return None
 
-def debug_extract():
-    """Fungsi debug untuk mengekstrak dan menampilkan data mentah."""
-    # Tanya nama file audio stego
-    stego_file = input("Masukkan path file audio yang akan di-debug: ").strip()
+def debug_extract(stego_file=None, num_bits=None):
+    """
+    Fungsi debug untuk mengekstrak dan menampilkan data mentah.
+    
+    Args:
+        stego_file (str, optional): Path ke file audio stego
+        num_bits (int, optional): Jumlah bit yang akan diekstrak
+    """
+    # Tanya nama file audio stego jika tidak diberikan
+    if stego_file is None:
+        stego_file = input("Masukkan path file audio yang akan di-debug: ").strip()
     
     if not stego_file or not os.path.exists(stego_file):
         print("File tidak ditemukan")
         return
     
-    # Cek apakah ada file info
-    info_file = stego_file + ".info"
-    if os.path.exists(info_file):
-        try:
-            with open(info_file, 'r') as f:
-                info = json.load(f)
-            num_bits = info["bits_length"]
-            print(f"Jumlah bit dari file info: {num_bits}")
-        except Exception as e:
-            print(f"Error membaca file info: {str(e)}")
+    # Cek apakah ada file info untuk mendapatkan jumlah bit
+    if num_bits is None:
+        info_file = stego_file + ".info"
+        if os.path.exists(info_file):
+            try:
+                with open(info_file, 'r') as f:
+                    info = json.load(f)
+                num_bits = info["bits_length"]
+                print(f"Jumlah bit dari file info: {num_bits}")
+            except Exception as e:
+                print(f"Error membaca file info: {str(e)}")
+                num_bits = int(input("Masukkan jumlah bit yang akan diekstrak untuk debug: "))
+        else:
             num_bits = int(input("Masukkan jumlah bit yang akan diekstrak untuk debug: "))
-    else:
-        num_bits = int(input("Masukkan jumlah bit yang akan diekstrak untuk debug: "))
     
     # Buat instance DWT
     dwt = AudioDWT(wavelet='db2', level=1)
@@ -441,7 +449,16 @@ def debug_extract():
     try:
         # Ekstrak bit dari file audio
         print(f"Mengekstrak {num_bits} bit dari file...")
-        all_extracted_bits = dwt.extract_data(stego_file, num_bits)
+        
+        # Baca file audio stego
+        stego_data, sample_rate = dwt.read_audio(stego_file)
+        
+        # Terapkan DWT
+        coeffs = dwt.apply_dwt(stego_data)
+        
+        # Ekstrak bit dengan alpha default
+        alpha = 0.001  # Nilai alpha default untuk debug
+        all_extracted_bits = dwt.extract_bits_from_coefficients(coeffs, num_bits, alpha=alpha)
         
         print(f"Jumlah bit yang berhasil diekstrak: {len(all_extracted_bits)}")
         
@@ -506,30 +523,4 @@ def debug_extract():
             
     except Exception as e:
         print(f"ERROR: {str(e)}")
-        import traceback
         traceback.print_exc()
-
-def main():
-    while True:
-        print("\n===== STEGANOGRAFI AUDIO DENGAN ENKRIPSI GANDA ECC+RSA DAN DWT =====")
-        print("1. Sisipkan pesan ke dalam file audio")
-        print("2. Ekstrak pesan dari file audio")
-        print("3. Debug ekstraksi")
-        print("4. Keluar")
-        
-        choice = input("\nPilih menu (1-4): ")
-        
-        if choice == '1':
-            embed_message()
-        elif choice == '2':
-            extract_message()
-        elif choice == '3':
-            debug_extract()
-        elif choice == '4':
-            print("Terima kasih telah menggunakan program ini!")
-            break
-        else:
-            print("Pilihan tidak valid. Silakan pilih 1-4.")
-
-if __name__ == "__main__":
-    main() 
