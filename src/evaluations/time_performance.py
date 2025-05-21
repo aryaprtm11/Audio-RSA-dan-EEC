@@ -64,7 +64,7 @@ def decrypt_message(encrypted_data):
 def run_simple_benchmark():
     """Run a simple benchmark with 5 runs for each message length"""
     # Create output directory
-    output_dir = "src/evaluations/output/time_performance"
+    output_dir = "evaluations/output/time_performance"
     os.makedirs(output_dir, exist_ok=True)
     
     # Test parameters
