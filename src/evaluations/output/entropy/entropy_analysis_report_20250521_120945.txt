@@ -1,0 +1,19 @@
+===== Entropy Analysis Report =====
+
+Source: Plain Text
+Data Length: 62 bytes/symbols
+Entropy: 3.999768 bits
+Entropy Quality: Low (Many Patterns)
+
+----------------------------------------
+
+Source: Pseudo-Random
+Data Length: 100 bytes/symbols
+Entropy: 6.296307 bits
+Entropy Quality: Moderate (Some Patterns Present)
+
+----------------------------------------
+
+
+Higher entropy (closer to 8 bits) generally indicates more randomness,
+which is desirable for encrypted data. Plain text typically has lower entropy.
