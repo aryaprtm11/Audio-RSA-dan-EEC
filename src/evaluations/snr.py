@@ -160,8 +160,8 @@ if __name__ == "__main__":
     print("===== AUDIO STEGANOGRAPHY WAVEFORM COMPARISON =====")
     
     # Define the paths to the original and stego files
-    original_file = "../input/test_crypto.wav"
-    stego_file = "../output/stego_test_crypto.wav"
+    original_file = "input/test_crypto.wav"
+    stego_file = "output/stego_test_crypto.wav"
     
     print(f"Original file: {original_file}")
     print(f"Stego file: {stego_file}")

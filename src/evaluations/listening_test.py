@@ -20,7 +20,7 @@ class ListeningTestApp:
         self.root.resizable(True, True)
         
         # Create output directory
-        self.output_dir = "evaluations/output/listening_test"
+        self.output_dir = "src/evaluations/output/listening_test"
         os.makedirs(self.output_dir, exist_ok=True)
         
         # Test configuration
@@ -30,8 +30,8 @@ class ListeningTestApp:
         self.total_trials = 1  # Just one pair to test
         
         # Predefined audio files
-        self.default_original = "../input/test_crypto.wav"
-        self.default_stego = "../output/stego_test_crypto.wav"
+        self.default_original = "input/test_crypto.wav"
+        self.default_stego = "output/stego_test_crypto.wav"
         
         # Audio data
         self.original_file = self.default_original
@@ -361,19 +361,30 @@ class ListeningTestApp:
         labels = ['Original Better', 'Equal', 'Stego Better']
         sizes = [original_pref, equal_pref, stego_pref]
         colors = ['#ff9999', '#66b3ff', '#99ff99']
-        # Only explode the non-zero slice
-        explode = [0.1 if s > 0 else 0 for s in sizes]
         
-        # Filter out zero values for better visualization
-        non_zero_labels = [labels[i] for i in range(len(sizes)) if sizes[i] > 0]
-        non_zero_sizes = [s for s in sizes if s > 0]
-        non_zero_colors = [colors[i] for i in range(len(sizes)) if sizes[i] > 0]
-        non_zero_explode = [explode[i] for i in range(len(sizes)) if sizes[i] > 0]
+        # Determine which option was selected
+        result_text = ""
+        result_color = ""
         
-        ax1.pie(non_zero_sizes, explode=non_zero_explode, labels=non_zero_labels, 
-                colors=non_zero_colors, autopct='%1.1f%%', shadow=True, startangle=90)
+        if original_pref == 1:
+            result_text = "Original Audio\nPerceived Better"
+            result_color = colors[0]
+        elif equal_pref == 1:
+            result_text = "No Difference\nDetected"
+            result_color = colors[1]
+        else:  # stego_pref == 1
+            result_text = "Stego Audio\nPerceived Better"
+            result_color = colors[2]
+        
+        # Create pie with single slice (no need for multiple slices when only one can be selected)
+        ax1.pie([1], colors=[result_color], shadow=True, startangle=90)
         ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
-        ax1.set_title('Audio Quality Preference')
+        
+        # Add text in the center of the pie
+        ax1.text(0, 0, result_text, ha='center', va='center', 
+                 fontweight='bold', fontsize=12)
+        
+        ax1.set_title('Audio Quality Assessment')
         
         # Bar chart for quality difference rating
         x = ['No\ndifference', 'Very\nslight', 'Slight', 'Noticeable', 'Strong', 'Very\nstrong']
