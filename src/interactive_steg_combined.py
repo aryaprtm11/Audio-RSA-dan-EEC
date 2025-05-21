@@ -136,14 +136,14 @@ def embed_message():
         return
     
     # Tanya nilai alpha untuk DWT
-    alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.1): ").strip()
-    alpha = 0.1  # nilai default
+    alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.001): ").strip()
+    alpha = 0.001  # nilai default
     if alpha_str:
         try:
             alpha = float(alpha_str)
             print(f"Menggunakan alpha = {alpha}")
         except ValueError:
-            print(f"Nilai alpha tidak valid, menggunakan default 0.1")
+            print(f"Nilai alpha tidak valid, menggunakan default 0.001")
     
     try:
         # Siapkan pesan dengan enkripsi ganda (ECC kemudian RSA)
@@ -245,7 +245,7 @@ def extract_message():
     info_file = stego_file + ".info"
     ecc_private_key = None
     rsa_private_key = None
-    alpha = 0.1  # Default alpha
+    alpha = 0.001  # Default alpha
     
     if os.path.exists(info_file):
         try:
@@ -268,24 +268,24 @@ def extract_message():
             num_bits = int(input("Masukkan jumlah bit pesan yang akan diekstrak: "))
             
             # Tanya nilai alpha jika file info tidak valid
-            alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.1): ").strip()
+            alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.001): ").strip()
             if alpha_str:
                 try:
                     alpha = float(alpha_str)
                     print(f"Menggunakan alpha = {alpha}")
                 except ValueError:
-                    print(f"Nilai alpha tidak valid, menggunakan default 0.1")
+                    print(f"Nilai alpha tidak valid, menggunakan default 0.001")
     else:
         num_bits = int(input("Masukkan jumlah bit pesan yang akan diekstrak: "))
         
         # Tanya nilai alpha jika tidak ada file info
-        alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.1): ").strip()
+        alpha_str = input("Masukkan nilai alpha untuk DWT (default 0.001): ").strip()
         if alpha_str:
             try:
                 alpha = float(alpha_str)
                 print(f"Menggunakan alpha = {alpha}")
             except ValueError:
-                print(f"Nilai alpha tidak valid, menggunakan default 0.1")
+                print(f"Nilai alpha tidak valid, menggunakan default 0.001")
     
     # Cek juga file .key yang mungkin ada
     key_file = stego_file + ".key"
