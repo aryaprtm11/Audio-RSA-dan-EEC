@@ -107,4 +107,10 @@ python src/evaluations/listening_test.py
 ## Referensi & Kontak
 
 - Lihat folder `docs/` untuk teori dan penjelasan lebih lanjut.
-- Untuk pertanyaan, hubungi pengembang melalui email atau kontak yang tertera di laporan.
+- Anggota kelompok RB-04
+  - Ikhsannudin Lathief - 122140137
+  - Arya Pratama - 122140156
+  - Ashoka Tatang Solihin - 122140051
+  - Shintya Ayu Wardani - 122140138
+  - Keti Azura - 122140139
+  - Apridian Saputra - 122140143
